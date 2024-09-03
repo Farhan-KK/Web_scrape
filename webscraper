@@ -1,0 +1,73 @@
+// Function to extract email addresses from the page
+function extractEmails(text) {
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    return text.match(emailPattern) || [];
+}
+
+// Function to extract email addresses from mailto links
+function extractEmailsFromLinks() {
+    const emails = [];
+    const links = document.querySelectorAll('a[href^="mailto:"]');
+    links.forEach(link => {
+        const email = link.href.split('mailto:')[1];
+        emails.push(email);
+    });
+    return emails;
+}
+
+// Function to extract first names from email addresses
+function extractNamesFromEmails(emails) {
+    return emails.map(email => {
+        const namePart = email.split('@')[0];
+        return namePart.split('.')[0].charAt(0).toUpperCase() + namePart.split('.')[0].slice(1);
+    });
+}
+
+// Main function to run the scraper
+function scrapeWebsite() {
+    // Extract emails from page content
+    const textContent = document.body.innerText;
+    const emails = extractEmails(textContent).concat(extractEmailsFromLinks());
+
+    // Guess first names based on email addresses
+    const names = extractNamesFromEmails(emails);
+
+    // Combine names and emails into an array of objects
+    const data = names.map((name, index) => ({ name, email: emails[index] }));
+
+    // Log the results in the console (you can copy this output)
+    console.table(data);
+
+    // Optionally, download as a CSV file
+    if (data.length) {
+        downloadCSV(data);
+    } else {
+        console.log("No data found.");
+    }
+}
+
+// Function to download the scraped data as a CSV file
+function downloadCSV(data) {
+    const csvRows = [];
+    const headers = ["Name", "Email"];
+    csvRows.push(headers.join(','));
+
+    data.forEach(row => {
+        const values = [row.name, row.email];
+        csvRows.push(values.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'emails.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Run the scraper
+scrapeWebsite();
